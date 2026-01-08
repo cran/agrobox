@@ -58,31 +58,25 @@
 #'
 #' # Ejecutar la funcion agrobox
 #' agrobox(
-#'   data = df_experimento,     # La data que usaremos
-#'   test = "Duncan",           # Seleccionamos el test que deseamos utilizar,
-#'   #puede ser Tukey o Duncan
-#'   factor = "Fertilizante",   # Si tenemos un factorial aca colocamos el factor
-#'   #que nos interesa mostrar,
-#'   #suponiendo que previamente ya demostramos que no hay interaccion.
-#'   factor2 = "Dosis",         # Si tenemos un factorial este es el segundo factor,
-#'   #sino es un factorial solo se coloca NULL
-#'   orden_factor = c("A", "C", "B"),   # Ordenamos los niveles del factor principal
-#'   #si fuera necesario, sino solo colocamos NULL
-#'   bloque = "Bloque",                 # En campo siempre se deben tener bloques.
-#'   variable = "tn_ha",               # Es la variable respuesta
+#'   data = df_experimento,
+#'   test = "Duncan",
+#'   factor = "Fertilizante",
+#'   factor2 = "Dosis",
+#'   orden_factor = c("A", "C", "B"),
+#'   bloque = "Bloque",
+#'   variable = "tn_ha",
 #'   niveles_factor = c("A" = "Nitrato de amonio",
 #'             "B" = "Fosfato diamonico",
-#'             "C" = "Sulfato de amonio"),  # Si deseamos cambiar de nombre a los niveles del
-#'   #factor principal aca podemos hacerlo, de lo contrario colocar NULL
-#'   titulo = "Rendimiento (tn/ha)",        # El titulo del grafico.
-#'   estructura = "Localidad~Variedad",     # Aca se colocan los grupo que deseamos evaluar,
+#'             "C" = "Sulfato de amonio"),
+#'   titulo = "Rendimiento (tn/ha)",
+#'   estructura = "Localidad~Variedad",
 #'   #se realizara un ANOVA y un TEST POST-HOC por cada grupo.
-#'   lim_sup = NULL, lim_inf = NULL,        # podemos colocar los limites del eje Y si deseamos.
+#'   lim_sup = NULL, lim_inf = NULL,
 #'   colores = c("A" = "#1b9e77",
 #'               "B" = "#d95f02",
-#'               "C" = "#7570b3")           # Se coloca los colores de cada nivel del factor principal.
-#' )$plot                                   # Recordemos que la funcion nos da una lista,
-#' #de la cual si deseamos obtener el plot debemos seleccionarlo de esta forma.
+#'               "C" = "#7570b3")
+#' )$plot
+#'
 #' @export
 
 
@@ -100,15 +94,6 @@ agrobox <- function(data,
                     lim_sup = NULL,
                     lim_inf = NULL,
                     colores = NULL) {
-  # Dependencias
-  #requireNamespace("dplyr")
-  #requireNamespace("stringr")
-  #requireNamespace("rlang")
-  #requireNamespace("ggplot2")
-  #requireNamespace("lubridate")
-  #requireNamespace("janitor")
-  #requireNamespace("pwr")
-  #requireNamespace("agricolae")
 
   test <- match.arg(test)
 
@@ -134,6 +119,7 @@ agrobox <- function(data,
 
   # Helper para chequear nombre valido (nchar > 0)
   has_name <- function(x) nzchar(x) && !is.na(x)
+
 
   # --- Crear columna cluster y calcular meds2 (promedios por cluster) -------
   # Funcion auxiliar que filtra columnas existentes y crea cluster segun grupos
@@ -188,8 +174,13 @@ agrobox <- function(data,
   power_list <- list()
 
   run_anova_for_group <- function(datis, formula_term, factor_name, variable_name, test_method) {
-    res <- list(oti = NULL, cv = NA_real_, power = NA_real_, shapiro_p = NA_real_, fligner_p = NA_real_)
+    res <- list(oti = NULL, cv = NA_real_, power = NA_real_, shapiro_p = NA_real_, fligner_p = NA_real_, anova_p = NA_real_)
     tryCatch({
+      #
+      # factor_name = factor
+      # variable_name = variable
+      # formula_term = formula_curr
+
       ## Preparar conteos y medias por tratamiento (siempre)
       qq <- ifelse(is.na(datis[[variable_name]]), 0, 1)
       datis2 <- datis %>%
@@ -214,8 +205,10 @@ agrobox <- function(data,
         suppressWarnings(max(abs(datis2[[variable_name]]), na.rm = TRUE) > 0) &&
         length(unique(datis2[[factor_name]])) >= 2
 
+
       # Si no cumple condiciones, devolver solo medias (groups = NA) y P-values si posibles
       if (!cond_valid) {
+        warning("ANOVA omitido en cluster '", unique(datis$cluster), "' por datos insuficientes.")
         # intentamos calcular shapiro/fligner si es posible (protegido)
         sh_p <- tryCatch(stats::shapiro.test(stats::residuals(stats::lm(stats::reformulate(factor_name, response = variable_name), datis2)))$p.value,
                          error = function(e) NA_real_)
@@ -226,8 +219,6 @@ agrobox <- function(data,
 
         res$oti <- means_tbl %>% dplyr::mutate(groups = NA_character_)
 
-        if (ss_p <= 0.05 || ff_p <= 0.05) message(sprintf("Cluster %s: shapiro p=%.3g fligner p=%.3g  no post-hoc", grp, ss_p, ff_p))
-
         return(res)
       }
 
@@ -237,10 +228,12 @@ agrobox <- function(data,
 
       ss_p <- tryCatch(stats::shapiro.test(stats::residuals(aov_fit))$p.value, error = function(e) NA_real_)
       ff_p <- tryCatch(stats::fligner.test(stats::reformulate(factor_name, response = variable_name), data = datis2)$p.value, error = function(e) NA_real_)
+      anova_p <- tryCatch(summary(aov_fit)[[1]][["Pr(>F)"]][1], error = function(e) NA_real_)
 
       # Guardamos p-values en el resultado (siempre)
       res$shapiro_p <- ss_p
       res$fligner_p <- ff_p
+      res$anova_p <- anova_p
 
 
       # Si las pruebas no pasan, devolvemos medias con groups = NA
@@ -258,6 +251,7 @@ agrobox <- function(data,
           agricolae::duncan.test(lm_fit, factor_name, group = TRUE)
         }
       }, error = function(e) NULL)
+
 
       # Construir groups_df de forma robusta si ph existe
       if (!is.null(ph) && !is.null(ph$groups)) {
@@ -314,6 +308,7 @@ agrobox <- function(data,
       res$power <- NA_real_
       res$shapiro_p <- NA_real_
       res$fligner_p <- NA_real_
+      res$anova_p <- NA_real_
       return(res)
     })
   }
@@ -345,7 +340,8 @@ agrobox <- function(data,
     if (!is.null(res_anova$oti)) {
       oti_df <- res_anova$oti %>% dplyr::mutate(cluster = grp,
                                                 shapiro_p = res_anova$shapiro_p,
-                                                fligner_p = res_anova$fligner_p)
+                                                fligner_p = res_anova$fligner_p,
+                                                anova_p = res_anova$anova_p)
       oti_list[[length(oti_list) + 1]] <- oti_df
     } else {
       # guardar estructura vacia con columnas esperadas para mantener consistencia
@@ -376,7 +372,17 @@ agrobox <- function(data,
 
   # Vector de niveles del factor
   dosis.a <- levels(as.factor(data2[[factor]]))
-  if (is.null(niveles_factor)) niveles_factor <- dosis.a
+  # Si niveles_factor es NULL, usar los niveles originales
+  if (is.null(niveles_factor)) {
+
+    labels_union <- dosis.a
+
+  } else {
+
+    # Caso contrario: reemplazar solo los valores indicados
+    labels_union <- dplyr::recode(dosis.a, !!!niveles_factor)
+
+  }
 
   # Limites y colores
   max_val <- suppressWarnings(max(data2[[variable]], na.rm = TRUE))
@@ -392,22 +398,50 @@ agrobox <- function(data,
   }
 
   # --- Generar grafico ----------------------------------------------------
+  # p_base <- ggplot2::ggplot(data2, ggplot2::aes(y = .data[[variable]], x = .data[[factor]], color = .data[[factor]])) +
+  #   ggplot2::geom_boxplot() +
+  #   ggplot2::geom_jitter(alpha = 0.4, size = 1) +
+  #   ggplot2::labs(y = titulo, x = NULL, col = NULL) +
+  #   ggplot2::theme_bw() +
+  #   ggplot2::theme(legend.position = "bottom",
+  #                  plot.title = ggplot2::element_text(hjust = 0.5),
+  #                  axis.text.x = ggplot2::element_blank()) +
+  #   ggplot2::scale_color_manual(values = colores, breaks = dosis.a, labels = labels_union)
+
+  # detectar si el unico cluster es "A"
+  clusters_unique <- unique(as.character(data2$cluster))
+  single_A <- (length(clusters_unique) == 1 && clusters_unique == "A")
+
+  # theme base (comun)
+  base_theme <- ggplot2::theme_bw() +
+    ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5))
+
+  # construccion inicial del plot (sin decisiones de legend/axis.x todavia)
   p_base <- ggplot2::ggplot(data2, ggplot2::aes(y = .data[[variable]], x = .data[[factor]], color = .data[[factor]])) +
-    ggplot2::geom_boxplot() +
+    ggplot2::geom_boxplot(outlier.shape = NA) +
     ggplot2::geom_jitter(alpha = 0.4, size = 1) +
     ggplot2::labs(y = titulo, x = NULL, col = NULL) +
-    ggplot2::theme_bw() +
-    ggplot2::theme(legend.position = "bottom",
-                   plot.title = ggplot2::element_text(hjust = 0.5),
-                   axis.text.x = ggplot2::element_blank()) +
-    ggplot2::scale_color_manual(values = colores, breaks = dosis.a, labels = niveles_factor)
+    base_theme +
+    ggplot2::scale_color_manual(values = colores, breaks = dosis.a, labels = labels_union)
+
+  # aplicar las opciones condicionales:
+  if (single_A) {
+    # solo un cluster A: quitar la leyenda y dejar los axis.text.x tal cual (no tocarlos)
+    p_base <- p_base + ggplot2::theme(legend.position = "none")
+  } else {
+    # mas de un cluster: leyenda abajo y ocultar labels del eje X
+    p_base <- p_base + ggplot2::theme(
+      legend.position = "bottom",
+      axis.text.x = ggplot2::element_blank()
+    )
+  }
 
   if (!is.null(estructura) && nzchar(estructura)) {
     p_base <- p_base + ggplot2::facet_grid(estructura, switch = "y", space = "free")
   }
 
   # Anadir textos si hay CV info en oti_merged
-  # --- Anadir textos si hay CV info en oti_merged (parche robusto según grupe1/grupe2) ---
+  # --- Anadir textos si hay CV info en oti_merged (parche robusto segun grupe1/grupe2) ---
   if ("CV" %in% names(oti_merged)) {
     # determinar nombres de grupos que definiste al inicio (pueden ser "" si no aplica)
     g1 <- if (exists("grupe1") && nzchar(grupe1)) grupe1 else NA_character_
@@ -507,6 +541,136 @@ agrobox <- function(data,
     p1 <- p1 + ggplot2::scale_y_continuous(limits = c(lim_inf, lim_sup))
   }
 
-  return(list(plot = p1, levels = dosis.a))
+  #########33 funcion TABLA
+
+
+  tabla_resumen_anova_png <- function(data,
+                                      factor_col,
+                                      out_dir   = getwd(),
+                                      file_stub = "RESUMEN_ANOVA") {
+
+    if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
+    df <- dplyr::as_tibble(data)
+
+    if (!factor_col %in% names(df)) {
+      stop("La columna de tratamiento '", factor_col, "' no existe en 'data'.")
+    }
+
+    df <- df %>%
+      mutate(
+        !!factor_col := factor(
+          recode(.data[[factor_col]], !!!stats::setNames(labels_union, dosis.a)),
+          levels = labels_union
+        )
+      )
+
+    #---------------- 1) Construir tabla_final ----------------
+    oti_clean <- df %>%
+      dplyr::mutate(
+        celda = dplyr::if_else(
+          is.na(groups),
+          sprintf("%.2f", medias),
+          sprintf("%.2f (%s)", medias, groups)
+        )
+      )
+
+    cluster_map <- oti_clean %>%
+      dplyr::distinct(cluster) %>%
+      dplyr::arrange(cluster) %>%
+      dplyr::mutate(col_name = as.character(cluster))
+
+    oti_labeled <- oti_clean %>%
+      dplyr::left_join(cluster_map, by = "cluster")
+
+    wide_main <- oti_labeled %>%
+      dplyr::select(dplyr::all_of(factor_col), col_name, celda) %>%
+      dplyr::distinct() %>%
+      tidyr::pivot_wider(names_from = col_name, values_from = celda)
+
+    wide_main <- wide_main[order(wide_main[[factor_col]]), ]
+    n_trat <- dplyr::n_distinct(wide_main[[factor_col]])
+
+    # --- Fila ANOVA ---
+    if (!"anova_p" %in% names(oti_labeled)) {
+      sig_row <- wide_main[1, ]
+      sig_row[] <- ""
+      sig_row[[factor_col]] <- "ANOVA"
+    } else {
+      sig_row <- oti_labeled %>%
+        dplyr::select(cluster, CV, col_name, anova_p) %>%
+        dplyr::distinct() %>%
+        dplyr::mutate(sig = dplyr::case_when(
+          is.na(CV)           ~ "-",
+          is.na(anova_p)      ~ "",
+          anova_p < 0.001     ~ "***",
+          anova_p < 0.01      ~ "**",
+          anova_p < 0.05      ~ "*",
+          TRUE                ~ "n.s."
+        )) %>%
+        dplyr::select(col_name, sig) %>%
+        tidyr::pivot_wider(names_from = col_name, values_from = sig)
+
+      sig_row[[factor_col]] <- "ANOVA"
+      sig_row <- sig_row %>%
+        dplyr::relocate(dplyr::all_of(factor_col), .before = 1)
+    }
+
+    # Helper para CV y Power
+    build_numeric_row <- function(var_name, label) {
+      row <- oti_labeled %>%
+        dplyr::select(col_name, !!rlang::sym(var_name)) %>%
+        dplyr::distinct() %>%
+        dplyr::mutate(
+          value = dplyr::if_else(
+            is.na(.data[[var_name]]),
+            "",
+            sprintf("%.2f", .data[[var_name]])
+          )
+        ) %>%
+        dplyr::select(col_name, value) %>%
+        tidyr::pivot_wider(names_from = col_name, values_from = value)
+
+      row[[factor_col]] <- label
+      row %>%
+        dplyr::relocate(dplyr::all_of(factor_col), .before = 1)
+    }
+
+    cv_row    <- build_numeric_row("CV",    "CV")
+    power_row <- build_numeric_row("Power", "Power")
+
+    tabla_final <- wide_main %>%
+      dplyr::bind_rows(sig_row, cv_row, power_row)
+
+    #---------------- 2) Fila extra y nombres bonitos ----------------
+    fila_extra <- as.list(rep("", ncol(tabla_final)))
+    names(fila_extra) <- names(tabla_final)
+    fila_extra[[factor_col]] <- factor_col
+
+    tabla_final2 <- dplyr::bind_rows(fila_extra, tabla_final)
+    names(tabla_final2)[names(tabla_final2) == factor_col] <- ""
+
+    encabezados <- names(tabla_final2)
+    encabezados[-1] <- vapply(encabezados[-1], function(x) {
+      if (!grepl("_", x)) return(x)
+      partes <- strsplit(x, "_", fixed = TRUE)[[1]]
+      linea1 <- partes[1]
+      linea2 <- paste(partes[-1], collapse = "_")
+      sprintf("\\makecell{%s \\\\ %s}", linea1, linea2)
+    }, character(1))
+    names(tabla_final2) <- encabezados
+
+    fila_ultimo_trat <- 1 + n_trat
+
+    return(tabla_final2)
+  }
+
+  tabla <- tabla_resumen_anova_png(
+    data       = oti_merged,
+    factor_col = factor,
+    file_stub  = "RESUMEN_ANOVA"
+  )
+
+
+  return(list(plot = p1, tabla = tabla, levels = labels_union))
 }
 

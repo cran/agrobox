@@ -90,29 +90,23 @@ df_experimento$tn_ha <- 20 +
 
 # Ejecutar la funcion agrobox
 agrobox(
-  data = df_experimento,     # La data que usaremos
-  test = "Duncan",           # Seleccionamos el test que deseamos utilizar,
-  #puede ser Tukey o Duncan
-  factor = "Fertilizante",   # Si tenemos un factorial aca colocamos el factor
-  #que nos interesa mostrar,
-  #suponiendo que previamente ya demostramos que no hay interaccion.
-  factor2 = "Dosis",         # Si tenemos un factorial este es el segundo factor,
-  #sino es un factorial solo se coloca NULL
-  orden_factor = c("A", "C", "B"),   # Ordenamos los niveles del factor principal
-  #si fuera necesario, sino solo colocamos NULL
-  bloque = "Bloque",                 # En campo siempre se deben tener bloques.
-  variable = "tn_ha",               # Es la variable respuesta
+  data = df_experimento,
+  test = "Duncan",
+  factor = "Fertilizante",
+  factor2 = "Dosis",
+  orden_factor = c("A", "C", "B"),
+  bloque = "Bloque",
+  variable = "tn_ha",
   niveles_factor = c("A" = "Nitrato de amonio",
             "B" = "Fosfato diamonico",
-            "C" = "Sulfato de amonio"),  # Si deseamos cambiar de nombre a los niveles del
-  #factor principal aca podemos hacerlo, de lo contrario colocar NULL
-  titulo = "Rendimiento (tn/ha)",        # El titulo del grafico.
-  estructura = "Localidad~Variedad",     # Aca se colocan los grupo que deseamos evaluar,
+            "C" = "Sulfato de amonio"),
+  titulo = "Rendimiento (tn/ha)",
+  estructura = "Localidad~Variedad",
   #se realizara un ANOVA y un TEST POST-HOC por cada grupo.
-  lim_sup = NULL, lim_inf = NULL,        # podemos colocar los limites del eje Y si deseamos.
+  lim_sup = NULL, lim_inf = NULL,
   colores = c("A" = "#1b9e77",
               "B" = "#d95f02",
-              "C" = "#7570b3")           # Se coloca los colores de cada nivel del factor principal.
-)$plot                                   # Recordemos que la funcion nos da una lista,
-#de la cual si deseamos obtener el plot debemos seleccionarlo de esta forma.
+              "C" = "#7570b3")
+)$plot
+
 }
