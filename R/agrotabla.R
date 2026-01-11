@@ -55,15 +55,37 @@
 #' )
 #' }
 #'
-#' @importFrom kableExtra kbl kable_styling row_spec
-#' @importFrom magick image_read_pdf image_trim image_border image_write
-#' @importFrom tinytex latexmk
 #'
 #' @export
 agrotabla <- function(x,
                          out_dir = getwd(),
                          file_stub = "TABLA",
                          dpi = 600) {
+  # ---- chequear dependencias opcionales ----
+  pkgs_needed <- c("kableExtra", "tinytex", "magick")
+
+  faltan <- pkgs_needed[!vapply(pkgs_needed, requireNamespace,
+                                FUN.VALUE = logical(1),
+                                quietly = TRUE)]
+
+  if (length(faltan) > 0) {
+    stop(
+      "La funcion 'agrotabla()' requiere paquetes opcionales no instalados:\n",
+      paste0("  - ", faltan, collapse = "\n"),
+      "\n\nInstalalos manualmente con:\n",
+      "install.packages(c(", paste0('"', faltan, '"', collapse = ", "), "))",
+      call. = FALSE
+    )
+  }
+
+  if (!tinytex::is_tinytex()) {
+    stop(
+      "No se detecto una instalacion funcional de LaTeX.\n",
+      "Instala TinyTeX con:\n",
+      "tinytex::install_tinytex()",
+      call. = FALSE
+    )
+  }
 
   if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
 

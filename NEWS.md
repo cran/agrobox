@@ -1,3 +1,12 @@
+# agrobox 0.2.1
+
+## Minor fixes
+
+- Resubmission to CRAN after incoming checks.
+- Moved `magick`, `kableExtra`, and `tinytex` from Imports to Suggests.
+- No user-facing changes.
+---
+
 # agrobox 0.2.0
 
 ## New features

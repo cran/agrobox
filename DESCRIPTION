@@ -2,7 +2,7 @@ Package: agrobox
 Type: Package
 Title: Data Visualization and Statistical Tools for Agroindustrial
         Experiments
-Version: 0.2.0
+Version: 0.2.1
 Authors@R: 
     c(person(given = c("Joaquin", "Alejandro"),
              family = "Salinas Angeles",
@@ -35,15 +35,15 @@ Encoding: UTF-8
 Language: en, es
 Depends: R (>= 3.5.0)
 Imports: dplyr, ggplot2, tidyr, stringr, agricolae, stats, pwr, rlang,
-        kableExtra, magick, tinytex, openxlsx
-Suggests: testthat (>= 3.0.0)
+        openxlsx
+Suggests: kableExtra, magick, tinytex, testthat (>= 3.0.0)
 Config/testthat/edition: 3
 RoxygenNote: 7.3.3
 URL: https://github.com/Joa3aquin50/agrobox
 BugReports: https://github.com/Joa3aquin50/agrobox/issues
 NeedsCompilation: no
-Packaged: 2026-01-07 02:50:52 UTC; JOAQUIN SALINAS
+Packaged: 2026-01-10 02:06:16 UTC; JOAQUIN SALINAS
 Author: Joaquin Alejandro Salinas Angeles [aut, cre] (ORCID:
     <https://orcid.org/0009-0005-6174-9714>)
 Repository: CRAN
-Date/Publication: 2026-01-08 04:30:02 UTC
+Date/Publication: 2026-01-11 00:00:02 UTC
