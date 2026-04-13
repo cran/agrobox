@@ -2,17 +2,20 @@
 % Please edit documentation in R/agrobox.R
 \name{agrobox}
 \alias{agrobox}
-\title{Genera un grafico y analisis estadistico por grupo}
+\title{Boxplot con anotaciones post-hoc estadísticas para experimentos agronómicos
+/ Boxplot with Statistical Post-hoc Annotations for Agronomic Experiments}
 \usage{
 agrobox(
   data,
   test = c("Duncan", "Tukey"),
+  var.equal = TRUE,
   factor,
   factor2 = NULL,
   orden_factor = NULL,
+  grupo1_orden = NULL,
+  grupo2_orden = NULL,
   bloque = NULL,
   variable,
-  niveles_factor = NULL,
   titulo = NULL,
   estructura = NULL,
   lim_sup = NULL,
@@ -21,92 +24,285 @@ agrobox(
 )
 }
 \arguments{
-\item{data}{Un data frame que contiene los datos.}
+\item{data}{Data frame con los datos experimentales /
+A data frame containing the experimental data.}
 
-\item{test}{Tipo de prueba post-hoc a usar: `"Duncan"` (por defecto) o `"Tukey"`.}
+\item{test}{Método post-hoc: \code{"Duncan"} (default) o \code{"Tukey"} /
+Post-hoc test: \code{"Duncan"} (default) or \code{"Tukey"}.}
 
-\item{factor}{Variable categorica principal (factor 1 o tratamiento).}
+\item{var.equal}{Si TRUE usa ANOVA clásico; si FALSE activa Welch /
+Logical. If TRUE uses classic ANOVA; if FALSE enables Welch path.}
 
-\item{factor2}{(Opcional) Segundo factor para interaccion (usado en ANOVA).}
+\item{factor}{Nombre de la variable categórica principal /
+Name of the main categorical variable (treatment).}
 
-\item{orden_factor}{(Opcional) Vector con el orden deseado para los niveles del `factor`.}
+\item{factor2}{Segundo factor opcional para interacción /
+Optional second factor for interaction.}
 
-\item{bloque}{(Opcional) Variable de bloque para disenos con bloques completos.}
+\item{orden_factor}{Vector para ordenar/renombrar tratamientos /
+Vector to reorder/relabel factor levels.}
 
-\item{variable}{Variable numerica dependiente.}
+\item{grupo1_orden}{Igual que orden_factor pero para filas de facetas /
+Same as orden_factor for row facets.}
 
-\item{niveles_factor}{(Opcional) Etiquetas personalizadas para los niveles del `factor`.}
+\item{grupo2_orden}{Igual que orden_factor pero para columnas de facetas /
+Same as orden_factor for column facets.}
 
-\item{titulo}{Etiqueta para el eje Y del grafico (por ejemplo: "Altura (cm)").}
+\item{bloque}{Variable de bloque opcional /
+Optional blocking variable.}
 
-\item{estructura}{(Opcional) Formula tipo `Grupo1 ~ Grupo2` para definir los clusteres.}
+\item{variable}{Variable numérica de respuesta /
+Numeric response variable.}
 
-\item{lim_sup}{(Opcional) Limite superior para el eje Y.}
+\item{titulo}{Etiqueta del eje Y /
+Y-axis label.}
 
-\item{lim_inf}{(Opcional) Limite inferior para el eje Y.}
+\item{estructura}{Especificación de facetas ("fila~columna") /
+Faceting structure ("row~col").}
 
-\item{colores}{Vector de colores para los niveles del `factor`.}
+\item{lim_sup}{Límite superior del eje Y /
+Upper y-axis limit.}
+
+\item{lim_inf}{Límite inferior del eje Y /
+Lower y-axis limit.}
+
+\item{colores}{Vector de colores /
+Color vector for factor levels.}
 }
 \value{
-Una lista con:
+Lista con cuatro elementos /
+  A list with four elements:
 \describe{
-  \item{plot}{Objeto `ggplot` con el grafico generado.}
-  \item{levels}{Niveles del factor utilizados.}
+  \item{\code{plot}}{Objeto ggplot2 con boxplots y anotaciones /
+    ggplot2 object with boxplots and annotations}
+  \item{\code{tabla}}{Tabla resumen con medias, letras, ANOVA, CV y Power /
+    Summary table with means, letters, ANOVA, CV and Power}
+  \item{\code{levels}}{Niveles del factor mostrados /
+    Displayed factor levels}
+  \item{\code{data}}{Datos procesados usados en el análisis /
+    Processed data used in the analysis}
 }
+
+#'
 }
 \description{
-Esta funcion realiza analisis estadisticos por grupos definidos (clusteres)
-usando ANOVA y pruebas post-hoc (Duncan o Tukey),
-y genera un grafico tipo boxplot con etiquetas de medias, letras de significancia,
-coeficiente de variacion (CV) y potencia estadistica (Power).
+Genera boxplots con puntos jitter, etiquetas de medias y letras de comparación
+múltiple para experimentos agronómicos. Soporta facetas con hasta dos variables
+de agrupación y selecciona automáticamente el método estadístico en función de
+la normalidad (Shapiro-Wilk) y la homogeneidad de varianzas (Fligner-Killeen).
+}
+\details{
+Generates boxplots with jittered points, mean labels, and post-hoc letter
+annotations for agronomic experiments. Supports faceting by up to two grouping
+variables and automatic selection of the statistical method based on normality
+(Shapiro-Wilk) and homoscedasticity (Fligner-Killeen) tests.
+
+
+La función aplica la siguiente lógica de decisión para cada panel (cluster):
+
+The function applies the following decision logic for each facet panel (cluster):
+
+\enumerate{
+  \item Prueba de Shapiro-Wilk sobre los residuos del ANOVA. Si la normalidad falla
+        (p <= 0.05), solo se muestran las medias sin letras.
+
+        Shapiro-Wilk test on ANOVA residuals. If normality fails (p <= 0.05),
+        only means are shown with no letters.
+
+  \item Si \code{var.equal = TRUE} (ANOVA clásico): se aplica la prueba de
+        Fligner-Killeen. Si falla la homogeneidad, solo se muestran medias.
+        Si pasa, se usa ANOVA + post-hoc Duncan o Tukey.
+
+        If \code{var.equal = TRUE} (classic ANOVA path): Fligner-Killeen test is
+        applied. If homoscedasticity fails, only means are shown. Otherwise,
+        ANOVA + Duncan or Tukey post-hoc is used.
+
+  \item Si \code{var.equal = FALSE} (ruta Welch):
+    \itemize{
+      \item Si Fligner pasa (p > 0.05): se usa ANOVA estándar + Duncan o Tukey.
+      \item Si Fligner falla: se usa Welch + Games-Howell.
+      \item CV y Power solo se reportan cuando ff_p > 0.01.
+      \item Si alguna comparación tiene p-valor NA o falta algún grupo en las
+            letras, se eliminan las letras para todo el cluster.
+    }
+
+    If \code{var.equal = FALSE} (Welch path):
+    \itemize{
+      \item If Fligner passes (p > 0.05): standard ANOVA + Duncan or Tukey is used.
+      \item If Fligner fails: Welch test + Games-Howell post-hoc is used.
+      \item CV and Power are reported only when ff_p > 0.01.
+      \item If any pairwise comparison has NA p-value or any group is missing
+            from the letter display, letters are suppressed for the entire cluster.
+    }
+}
+
+Los argumentos \code{orden_factor}, \code{grupo1_orden} y \code{grupo2_orden}
+aceptan vectores nombrados o no:
+
+The \code{orden_factor}, \code{grupo1_orden}, and \code{grupo2_orden}
+arguments accept either unnamed or named vectors:
+
+\itemize{
+  \item Vector sin nombre: solo cambia el orden.
+  \item Vector nombrado: cambia orden y etiquetas.
+}
+
+\itemize{
+  \item Unnamed vector: order only.
+  \item Named vector: order + relabeling.
+}
+
+Para vectores nombrados, el nombre corresponde al nivel original y el valor
+es la etiqueta mostrada. Elementos sin nombre conservan su valor original.
+
+For named vectors, names correspond to original levels and values to display
+labels. Elements without a name keep their original value.
+
+Si algún tratamiento tiene todas sus observaciones como NA dentro de un cluster,
+la función se detiene mostrando un error informativo.
+
+If any treatment has all observations as NA within any cluster, the function
+stops with an informative error.
 }
 \examples{
-# Ejemplo de un experimento factorial con bloques y estructura bifactorial
 library(dplyr)
-library(tidyr)
-library(ggplot2)
 
-set.seed(123)
-
-# Diseno factorial con bloques (ej. 4 bloques por Localidad-Variedad)
-df_experimento <- expand.grid(
-  Fertilizante = c("A", "B", "C"),
-  Dosis = c("Baja", "Media", "Alta"),
-  Localidad = c("Loc1", "Loc2"),
-  Variedad = c("Var1", "Var2", "Var3"),
-  Bloque = paste0("B", 1:4)  # Bloques, no repeticiones
+# Example 1: Single panel, classic ANOVA with Duncan test
+set.seed(42)
+df1 <- data.frame(
+  trat = rep(c("T0", "T1", "T2", "T3"), each = 5),
+  resp = c(
+    rnorm(5, 10, 1),
+    rnorm(5, 14, 1),
+    rnorm(5, 18, 1),
+    rnorm(5, 22, 1)
+  )
 )
 
-# Simular rendimiento (tn/ha) con efectos reales
-df_experimento$tn_ha <- 20 +
-  ifelse(df_experimento$Fertilizante == "B", 2,
-         ifelse(df_experimento$Fertilizante == "C", 4, 0)) +
-  ifelse(df_experimento$Dosis == "Media", 1,
-         ifelse(df_experimento$Dosis == "Alta", 2, 0)) +
-  ifelse(df_experimento$Localidad == "Loc2", 0.5, 0) +
-  ifelse(df_experimento$Variedad == "Var2", 0.5,
-         ifelse(df_experimento$Variedad == "Var3", -0.5, 0)) +
-  rnorm(nrow(df_experimento), mean = 0, sd = 1.2)
+result1 <- agrobox(
+  data         = df1,
+  factor       = "trat",
+  variable     = "resp",
+  titulo       = "Response variable",
+  orden_factor = c("T0" = "Control", "T1" = "Low",
+                   "T2" = "Medium",  "T3" = "High"),
+  var.equal    = TRUE,
+  test         = "Duncan"
+)
+result1$plot
+result1$tabla
 
-# Ejecutar la funcion agrobox
+# Example 2: One grouping variable (column facets), Welch + Games-Howell
+set.seed(99)
+df2 <- data.frame(
+  trat  = rep(c("A", "B", "C", "D"), each = 12),
+  epoca = rep(rep(c("Dry", "Rainy", "Transition"), each = 4), 4),
+  resp  = c(
+    rnorm(12, 5,  0.3),
+    rnorm(12, 9,  3.5),
+    rnorm(12, 7,  2.0),
+    rnorm(12, 12, 4.8)
+  )
+)
+
+result2 <- agrobox(
+  data         = df2,
+  factor       = "trat",
+  variable     = "resp",
+  estructura   = "~epoca",
+  titulo       = "Response by season",
+  grupo2_orden = c("Dry", "Transition", "Rainy"),
+  orden_factor = c("A" = "Control",     "B" = "Treatment 1",
+                   "C" = "Treatment 2", "D" = "Treatment 3"),
+  var.equal    = FALSE,
+  colores      = c("gray40", "steelblue", "orange", "red3")
+)
+result2$plot
+result2$tabla
+
+# Example 3: Two grouping variables (row x column facets), with NAs
+set.seed(7)
+df3 <- expand.grid(
+  trat  = c("T1", "T2", "T3"),
+  suelo = c("Clay", "Sand"),
+  riego = c("Drip", "Sprinkler", "Rainfed"),
+  rep   = 1:5
+)
+df3$yield <- with(df3, {
+  base  <- c(T1 = 8,    T2 = 14,   T3 = 20)[as.character(trat)]
+  s     <- c(Clay = 0,  Sand = 3)[as.character(suelo)]
+  r     <- c(Drip = 2,  Sprinkler = 0, Rainfed = -4)[as.character(riego)]
+  rnorm(nrow(df3), base + s + r, 2)
+})
+set.seed(15)
+df3$yield[sample(nrow(df3), size = round(nrow(df3) * 0.08))] <- NA
+
+result3 <- agrobox(
+  data         = df3,
+  factor       = "trat",
+  variable     = "yield",
+  estructura   = "suelo~riego",
+  titulo       = "Yield (t/ha)",
+  orden_factor = c("T1" = "Variety 1", "T2" = "Variety 2",
+                   "T3" = "Variety 3"),
+  grupo1_orden = c("Clay" = "Clay soil", "Sand" = "Sandy soil"),
+  grupo2_orden = c("Rainfed", "Drip", "Sprinkler"),
+  var.equal    = FALSE,
+  colores      = c("darkgreen", "royalblue", "firebrick")
+)
+result3$plot
+result3$tabla
+result3$data
+
+# Example 4: Real Data nitrogeno_liberacion
+data(nitrogeno_liberacion)
+
 agrobox(
-  data = df_experimento,
-  test = "Duncan",
-  factor = "Fertilizante",
-  factor2 = "Dosis",
-  orden_factor = c("A", "C", "B"),
-  bloque = "Bloque",
-  variable = "tn_ha",
-  niveles_factor = c("A" = "Nitrato de amonio",
-            "B" = "Fosfato diamonico",
-            "C" = "Sulfato de amonio"),
-  titulo = "Rendimiento (tn/ha)",
-  estructura = "Localidad~Variedad",
-  #se realizara un ANOVA y un TEST POST-HOC por cada grupo.
-  lim_sup = NULL, lim_inf = NULL,
-  colores = c("A" = "#1b9e77",
-              "B" = "#d95f02",
-              "C" = "#7570b3")
-)$plot
+data = nitrogeno_liberacion,
+test = "Tukey",
+factor = "trata",
+variable = "nh4_mg_lt",
+orden_factor = c( "T1" = "Fertilizante (14-4-4)",
+                  "T2" = "Pellet (14-4-4)",
+                  "T3" = "Fertilizante (7-7-19)",
+                  "T4" = "Pellet (7-7-19)"),
+grupo1_orden = c("14.4.4" = "Ley 14 N - 4 P2O5 - 4 K2O",
+                 "7.7.19" = "Ley 7 N - 7 P2O5 - 19 K2O"),
+grupo2_orden = c("0" = "Día 0",
+                 "1" = "Día 1",
+                 "8" = "Día 8",
+                 "16" = "Día 16",
+                 "41" = "Día 41"),
+estructura = "formu~dias",
+colores = c("purple3", "green4","black", "red3")
+)
+
+
+# Example 5: Real Data pimiento_hibridacion
+
+data(pimiento_hibridacion)
+
+
+agrobox(
+data = pimiento_hibridacion,
+test = "Tukey",
+factor = "trata",
+bloque = "bloque",
+variable = "g_pla",
+titulo = "Rendimiento (g/pla)",
+orden_factor = c( "T1" = "5",
+                  "T2" = "4",
+                  "T3" = "3"),
+grupo2_orden = c("1" = "Día 0",
+                 "4"= "Día 4",
+                 "8" = "Día 8",
+                 "12" = "Día 12",
+                 "16" = "Día 16",
+                 "20" = "Día 20"),
+estructura = "~dia",
+colores = c("purple3", "green4","black", "red3")
+)$plot +
+  ggplot2::labs(col = "Semanas de hibridación")
+
 
 }

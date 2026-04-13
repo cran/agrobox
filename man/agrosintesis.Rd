@@ -2,25 +2,39 @@
 % Please edit documentation in R/agrosintesis.R
 \name{agrosintesis}
 \alias{agrosintesis}
-\title{Sintetiza resultados estadísticos para múltiples variables}
+\title{Sintetiza resultados estadisticos para multiples variables}
 \usage{
-agrosintesis(data, variables, estructura = NULL, ...)
+agrosintesis(
+  data,
+  variables,
+  estructura = NULL,
+  verbose = FALSE,
+  report = TRUE,
+  color = TRUE,
+  ...
+)
 }
 \arguments{
 \item{data}{data.frame con los datos experimentales.}
 
 \item{variables}{vector de nombres de variables respuesta.}
 
-\item{estructura}{fórmula en texto tipo "Factor1~Factor2" para clusters.}
+\item{estructura}{formula en texto tipo "Factor1~Factor2" para clusters.}
+
+\item{verbose}{Logical. If TRUE, prints progress messages.}
+
+\item{report}{logical, imprime reporte ejecutivo en consola.}
+
+\item{color}{logical, usa color en el reporte (si esta disponible).}
 
 \item{...}{argumentos adicionales pasados a \code{agrobox()}.}
 }
 \value{
-Un data.frame si no hay clusters, o una lista de data.frames
-si se define \code{estructura}.
+- Sin clusters: lista con \code{tabla} y \code{decision}
+- Con clusters: lista de dichas listas por cluster
 }
 \description{
 Aplica \code{agrobox()} a una o varias variables y consolida
-las tablas resumen. Permite análisis por clusters cuando se
-define una estructura.
+las tablas resumen. Genera ademas una sintesis decisional
+orientada a interpretacion rapida.
 }

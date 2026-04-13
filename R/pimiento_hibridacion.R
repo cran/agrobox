@@ -1,0 +1,38 @@
+#' Datos de hibridación en pimiento
+#' / Pepper hybridization dataset
+#'
+#' Datos experimentales del proceso de hibridación en pimiento,
+#' comparando tres calendarios de hibridación (3, 4 y 5 semanas).
+#' El dataset registra la producción de flores, frutos y semilla
+#' por días efectivos de hibridación en un diseño con bloques.
+#'
+#' Experimental dataset from a pepper hybridization process,
+#' comparing three hybridization schedules (3, 4 and 5 weeks).
+#' The data include flower production, fruit set and seed yield
+#' across effective hybridization days under a block design.
+#'
+#' @format A data frame with 232 rows and 10 variables:
+#' \describe{
+#'   \item{trata}{Tratamiento experimental}
+#'   \item{bloque}{Bloque experimental}
+#'   \item{descripcion}{Duración del periodo de hibridación (3, 4 o 5 semanas)}
+#'   \item{dia}{Día efectivo de hibridación}
+#'   \item{g_semilla}{Producción de semilla (g)}
+#'   \item{n_frutos}{Número de frutos}
+#'   \item{n_flores}{Número de flores emasculadas}
+#'   \item{n_plantas}{Número de plantas por parcela}
+#'   \item{g_pla}{Gramos de semilla por planta}
+#'   \item{g_fru}{Gramos de semilla por fruto}
+#' }
+#'
+#' @details
+#' Los datos muestran que la mayor acumulación de rendimiento ocurre
+#' en los primeros días de hibridación, disminuyendo progresivamente
+#' en evaluaciones posteriores.
+#'
+#' The data show that most yield accumulation occurs during the first
+#' hybridization days, followed by a gradual decline over time.
+#'
+#' @source Datos experimentales del autor
+#' / Author's experimental data
+"pimiento_hibridacion"

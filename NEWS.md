@@ -1,3 +1,67 @@
+# agrobox 0.3.0
+
+## New features
+
+- Added support for combined ordering and relabeling through:
+  - `orden_factor`
+  - `grupo1_orden`
+  - `grupo2_orden`
+  
+  These arguments now accept both named and unnamed vectors:
+  - Unnamed vectors reorder levels.
+  - Named vectors reorder and relabel simultaneously.
+
+- Added two real-world datasets:
+  - `nitrogeno_liberacion`: nitrogen release dynamics from fertilizers.
+  - `pimiento_hibridacion`: hybrid seed production dynamics in pepper.
+
+- Added new outputs to `agrobox()`:
+  - `$data`: summarized dataset used in the analysis (means, sd, n).
+  - `$stats`: ANOVA diagnostics per cluster (p-values, CV, Power).
+
+## Improvements
+
+- Faceting now correctly respects factor level order defined by:
+  - `grupo1_orden`
+  - `grupo2_orden`
+  
+  This resolves previous inconsistencies with `facet_grid()` ordering.
+
+- Improved handling of factor levels across all internal steps:
+  - Consistent propagation of levels from raw data → analysis → plotting.
+  - Prevents unintended reordering in ggplot facets.
+
+- Cluster construction is now more robust:
+  - Uses `interaction()` when both grouping variables are present.
+  - Preserves factor levels in all grouping scenarios.
+
+- Enhanced statistical robustness:
+  - Improved handling of missing values (NA) in post-hoc comparisons.
+  - Automatic suppression of letters when statistical assumptions fail.
+  
+- Improved compatibility with ggplot2 faceting behavior by enforcing factor levels prior to plotting.
+
+## Internal changes
+
+- Refactored factor handling through `aplicar_orden_labels()`:
+  - Unified logic for ordering and relabeling across all variables.
+
+- Reworked cluster generation logic to support:
+  - Single grouping
+  - Dual grouping
+  - No grouping (single panel)
+
+- Improved reconstruction of facet variables for `geom_text()`:
+  - Ensures correct placement of labels within panels.
+
+- Cleaner separation between:
+  - data preprocessing
+  - statistical analysis
+  - visualization
+  - reporting
+
+---
+
 # agrobox 0.2.1
 
 ## Minor fixes
